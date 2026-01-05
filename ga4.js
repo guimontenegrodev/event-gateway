@@ -6,18 +6,18 @@ function isValidEventTime(ts) {
 export default {
   async fetch(request, env) {
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 })
+      console.warn('Method Not Allowed')
     }
 
     if (!env.GA4_MEASUREMENT_ID || !env.GA4_API_SECRET) {
-      return new Response('Google Analytics credentials not configured', { status: 500 })
+      console.warn('Google Analytics credentials not configured')
     }
 
     let body
     try {
       body = await request.json()
     } catch {
-      return new Response('Invalid JSON', { status: 400 })
+      console.warn('Invalid JSON')
     }
 
     const { event, user, cookie, custom } = body || {}
@@ -28,17 +28,17 @@ export default {
       !event?.triggered_at ||
       !event?.source_url
     ) {
-      return new Response('Invalid event payload', { status: 400 })
+      console.warn('Invalid event payload')
     }
 
     const eventTime = Math.floor(new Date(event.triggered_at).getTime() / 1000)
 
     if (!isValidEventTime(eventTime)) {
-      return new Response('Invalid event_time', { status: 400 })
+      console.warn('Invalid event_time')
     }
 
     if (!user?.ga4_id && !user?.id) {
-      return new Response('User identifier missing', { status: 400 })
+      console.warn('User identifier missing')
     }
 
     const payload = {
@@ -72,16 +72,12 @@ export default {
         }
       )
     } catch {
-      return new Response('GA4 request failed', { status: 502 })
+      console.warn('GA4 request failed')
     } finally {
       clearTimeout(timeout)
     }
 
-    if (!res.ok) {
-      const text = await res.text()
-      return new Response(text, { status: 502 })
-    }
-
-    return new Response(null, { status: 204 })
+    const text = await res.text()
+    console.warn(text)
   }
 }

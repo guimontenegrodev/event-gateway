@@ -28,6 +28,6 @@ export default {
       console.warn('Google Ads events skipped: env variables missing')
     }
 
-    return new Response(null, { status: 200 })
+    return new Response('Worker started', { status: 200 })
   }
 }

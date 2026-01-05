@@ -15,7 +15,7 @@ function isValidEventTime(dateTime) {
 export default {
   async fetch(request, env) {
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 })
+      console.warn('Method Not Allowed')
     }
 
     if (
@@ -25,14 +25,14 @@ export default {
       !env.GADS_REFRESH_TOKEN ||
       !env.GADS_CUSTOMER_ID
     ) {
-      return new Response('Google Ads credentials not configured', { status: 500 })
+      console.warn('Google Ads credentials not configured')
     }
 
     let body
     try {
       body = await request.json()
     } catch {
-      return new Response('Invalid JSON', { status: 400 })
+      console.warn('Invalid JSON')
     }
 
     const { event, user, custom } = body || {}
@@ -42,15 +42,15 @@ export default {
       !event?.triggered_at ||
       !custom?.conversion_action
     ) {
-      return new Response('Invalid event payload', { status: 400 })
+      console.warn('Invalid event payload')
     }
 
     if (!isValidEventTime(event.triggered_at)) {
-      return new Response('Invalid conversion_date_time', { status: 400 })
+      console.warn('Invalid conversion_date_time')
     }
 
     if (!user?.email && !user?.phone) {
-      return new Response('Missing user identifiers', { status: 400 })
+      console.warn('Missing user identifiers')
     }
 
     const identifiers = []
@@ -78,7 +78,7 @@ export default {
     const accessToken = tokenData.access_token
 
     if (!accessToken) {
-      return new Response('Google Ads auth failed', { status: 502 })
+      console.warn('Google Ads auth failed')
     }
 
     const payload = {
@@ -113,16 +113,12 @@ export default {
         }
       )
     } catch {
-      return new Response('Google Ads request failed', { status: 502 })
+      console.warn('Google Ads request failed')
     } finally {
       clearTimeout(timeout)
     }
 
-    if (!res.ok) {
-      const text = await res.text()
-      return new Response(text, { status: 502 })
-    }
-
-    return new Response(null, { status: 204 })
+    const text = await res.text()
+    console.warn(text)
   }
 }

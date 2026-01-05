@@ -43,18 +43,18 @@ function isValidActionSource(source) {
 export default {
     async fetch(request, env) {
         if (request.method !== 'POST') {
-            return new Response('Method Not Allowed', { status: 405 })
+            console.warn('Method Not Allowed')
         }
 
         if (!env.FB_PIXEL_ID || !env.FB_ACCESS_TOKEN) {
-            return new Response('Facebook credentials not configured', { status: 500 })
+            console.warn('Facebook credentials not configured')
         }
 
         let body
         try {
             body = await request.json()
         } catch {
-            return new Response('Invalid JSON', { status: 400 })
+            console.warn('Invalid JSON')
         }
 
         const { event, user, cookie, custom } = body || {}
@@ -66,17 +66,17 @@ export default {
             !event?.source ||
             !event?.source_url
         ) {
-            return new Response('Invalid event payload', { status: 400 })
+            console.warn('Invalid event payload')
         }
 
         const eventTime = Math.floor(new Date(event.triggered_at).getTime() / 1000)
 
         if (!isValidEventTime(eventTime)) {
-            return new Response('Invalid event_time', { status: 400 })
+            console.warn('Invalid event_time')
         }
 
         if (!isValidActionSource(event.source)) {
-            return new Response('Invalid action_source', { status: 400 })
+            console.warn('Invalid action_source')
         }
 
         const em = user?.email ? await sha256(user.email) : null
@@ -92,7 +92,7 @@ export default {
         const ua = request.headers.get('user-agent')
 
         if (!ip || !ua) {
-            return new Response('Missing client context', { status: 400 })
+            console.warn('Missing client context')
         }
 
         const payload = [
@@ -135,19 +135,12 @@ export default {
                 }
             )
         } catch {
-            return new Response('Facebook request failed', { status: 502 })
+            console.warn('Facebook request failed')
         } finally {
             clearTimeout(timeout)
         }
 
         const text = await res.text()
-
-        if (!res.ok) {
-            return new Response(text, { status: 502 })
-        }
-
-        return new Response(text, {
-            headers: { 'Content-Type': 'application/json' }
-        })
+        console.warn(text)
     }
 }
