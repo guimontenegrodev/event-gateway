@@ -43,14 +43,14 @@ function isValidActionSource(source) {
 export default {
     async fetch(request, env) {
         if (!env.FB_PIXEL_ID || !env.FB_ACCESS_TOKEN) {
-            console.warn('Facebook credentials not configured')
+            console.warn('Facebook - Credentials not configured')
         }
 
         let body
         try {
             body = await request.json()
         } catch {
-            console.warn('Invalid JSON')
+            console.warn('Facebook - Invalid JSON')
         }
 
         const { event, user, cookie, custom } = body || {}
@@ -62,17 +62,17 @@ export default {
             !event?.source ||
             !event?.source_url
         ) {
-            console.warn('Invalid event payload')
+            console.warn('Facebook - Invalid event payload')
         }
 
         const eventTime = Math.floor(new Date(event.triggered_at).getTime() / 1000)
 
         if (!isValidEventTime(eventTime)) {
-            console.warn('Invalid event_time')
+            console.warn('Facebook - Invalid event_time')
         }
 
         if (!isValidActionSource(event.source)) {
-            console.warn('Invalid action_source')
+            console.warn('Facebook - Invalid action_source')
         }
 
         const em = user?.email ? await sha256(user.email) : null
@@ -88,7 +88,7 @@ export default {
         const ua = request.headers.get('user-agent')
 
         if (!ip || !ua) {
-            console.warn('Missing client context')
+            console.warn('Facebook - Missing client context')
         }
 
         const payload = [
@@ -131,12 +131,13 @@ export default {
                 }
             )
         } catch {
-            console.warn('Facebook request failed')
+            console.warn('Facebook - Facebook request failed')
         } finally {
             clearTimeout(timeout)
         }
 
-        const text = await res.text()
-        console.warn(text)
+        const resText = await res.text()
+        const text = resText || 'Evento processado com sucesso'
+        console.warn('Google Ads - ' + text)
     }
 }

@@ -21,14 +21,14 @@ export default {
       !env.GADS_REFRESH_TOKEN ||
       !env.GADS_CUSTOMER_ID
     ) {
-      console.warn('Google Ads credentials not configured')
+      console.warn('Google Ads - Credentials not configured')
     }
 
     let body
     try {
       body = await request.json()
     } catch {
-      console.warn('Invalid JSON')
+      console.warn('Google Ads - Invalid JSON')
     }
 
     const { event, user, custom } = body || {}
@@ -38,15 +38,15 @@ export default {
       !event?.triggered_at ||
       !custom?.conversion_action
     ) {
-      console.warn('Invalid event payload')
+      console.warn('Google Ads - Invalid event payload')
     }
 
     if (!isValidEventTime(event.triggered_at)) {
-      console.warn('Invalid conversion_date_time')
+      console.warn('Google Ads - Invalid conversion_date_time')
     }
 
     if (!user?.email && !user?.phone) {
-      console.warn('Missing user identifiers')
+      console.warn('Google Ads - Missing user identifiers')
     }
 
     const identifiers = []
@@ -74,7 +74,7 @@ export default {
     const accessToken = tokenData.access_token
 
     if (!accessToken) {
-      console.warn('Google Ads auth failed')
+      console.warn('Google Ads - Google Ads auth failed')
     }
 
     const payload = {
@@ -109,12 +109,13 @@ export default {
         }
       )
     } catch {
-      console.warn('Google Ads request failed')
+      console.warn('Google Ads - Google Ads request failed')
     } finally {
       clearTimeout(timeout)
     }
 
-    const text = await res.text()
-    console.warn(text)
+    const resText = await res.text()
+    const text = resText || 'Evento processado com sucesso'
+    console.warn('Google Ads - ' + text)
   }
 }

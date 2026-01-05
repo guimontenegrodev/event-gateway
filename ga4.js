@@ -6,14 +6,14 @@ function isValidEventTime(ts) {
 export default {
   async fetch(request, env) {
     if (!env.GA4_MEASUREMENT_ID || !env.GA4_API_SECRET) {
-      console.warn('Google Analytics credentials not configured')
+      console.warn('Google Analytics 4 - Credentials not configured')
     }
 
     let body
     try {
       body = await request.json()
     } catch {
-      console.warn('Invalid JSON')
+      console.warn('Google Analytics 4 - Invalid JSON')
     }
 
     const { event, user, cookie, custom } = body || {}
@@ -24,17 +24,17 @@ export default {
       !event?.triggered_at ||
       !event?.source_url
     ) {
-      console.warn('Invalid event payload')
+      console.warn('Google Analytics 4 - Invalid event payload')
     }
 
     const eventTime = Math.floor(new Date(event.triggered_at).getTime() / 1000)
 
     if (!isValidEventTime(eventTime)) {
-      console.warn('Invalid event_time')
+      console.warn('Google Analytics 4 - Invalid event_time')
     }
 
     if (!user?.ga4_id && !user?.id) {
-      console.warn('User identifier missing')
+      console.warn('Google Analytics 4 - User identifier missing')
     }
 
     const payload = {
@@ -68,12 +68,13 @@ export default {
         }
       )
     } catch {
-      console.warn('GA4 request failed')
+      console.warn('Google Analytics 4 - GA4 request failed')
     } finally {
       clearTimeout(timeout)
     }
 
-    const text = await res.text()
-    console.warn(text)
+    const resText = await res.text()
+    const text = resText || 'Evento processado com sucesso'
+    console.warn('Google Ads - ' + text)
   }
 }
