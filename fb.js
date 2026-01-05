@@ -1,0 +1,147 @@
+async function sha256(value) {
+    const data = new TextEncoder().encode(value.trim().toLowerCase())
+    const hash = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+}
+
+function parsePhone(num) {
+    if (!num) return null
+
+    let n = num.replace(/\D/g, '')
+    if (n.startsWith('0')) n = n.slice(1)
+
+    if (n.length === 10 || n.length === 11) {
+        n = '55' + n
+    } else if ((n.length === 12 || n.length === 13) && n.startsWith('55')) {
+    } else {
+        return null
+    }
+
+    return '+' + n
+}
+
+function isValidEventTime(ts) {
+    const now = Math.floor(Date.now() / 1000)
+    return ts <= now && now - ts <= 60 * 60 * 24 * 7
+}
+
+function isValidActionSource(source) {
+    return [
+        'website',
+        'app',
+        'email',
+        'phone_call',
+        'chat',
+        'physical_store',
+        'system_generated',
+        'other'
+    ].includes(source)
+}
+
+export default {
+    async fetch(request, env) {
+        if (request.method !== 'POST') {
+            return new Response('Method Not Allowed', { status: 405 })
+        }
+
+        if (!env.FB_PIXEL_ID || !env.FB_ACCESS_TOKEN) {
+            return new Response('Facebook credentials not configured', { status: 500 })
+        }
+
+        let body
+        try {
+            body = await request.json()
+        } catch {
+            return new Response('Invalid JSON', { status: 400 })
+        }
+
+        const { event, user, cookie, custom } = body || {}
+
+        if (
+            !event?.fb_name ||
+            !event?.triggered_at ||
+            !event?.id ||
+            !event?.source ||
+            !event?.source_url
+        ) {
+            return new Response('Invalid event payload', { status: 400 })
+        }
+
+        const eventTime = Math.floor(new Date(event.triggered_at).getTime() / 1000)
+
+        if (!isValidEventTime(eventTime)) {
+            return new Response('Invalid event_time', { status: 400 })
+        }
+
+        if (!isValidActionSource(event.source)) {
+            return new Response('Invalid action_source', { status: 400 })
+        }
+
+        const em = user?.email ? await sha256(user.email) : null
+
+        const parsedPhone = parsePhone(user?.phone)
+        const ph = parsedPhone ? await sha256(parsedPhone) : null
+
+        const ip =
+            request.headers.get('cf-connecting-ip') ||
+            request.headers.get('x-forwarded-for')?.split(',')[0] ||
+            null
+
+        const ua = request.headers.get('user-agent')
+
+        if (!ip || !ua) {
+            return new Response('Missing client context', { status: 400 })
+        }
+
+        const payload = [
+            {
+                event_name: event.fb_name,
+                event_time: eventTime,
+                event_id: event.id,
+                action_source: event.source,
+                event_source_url: event.source_url,
+                user_data: {
+                    em,
+                    ph,
+                    client_ip_address: ip,
+                    client_user_agent: ua,
+                    fbp: cookie?.fbp || null,
+                    fbc: cookie?.fbc || null
+                },
+                custom_data: custom || {}
+            }
+        ]
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000)
+
+        let res
+        try {
+            res = await fetch(
+                `https://graph.facebook.com/v18.0/${env.FB_PIXEL_ID}/events?access_token=${env.FB_ACCESS_TOKEN}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: payload }),
+                    signal: controller.signal
+                }
+            )
+        } catch {
+            return new Response('Facebook request failed', { status: 502 })
+        } finally {
+            clearTimeout(timeout)
+        }
+
+        const text = await res.text()
+
+        if (!res.ok) {
+            return new Response(text, { status: 502 })
+        }
+
+        return new Response(text, {
+            headers: { 'Content-Type': 'application/json' }
+        })
+    }
+}
