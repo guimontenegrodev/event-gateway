@@ -91,6 +91,7 @@ All third-party calls run in the background.
 
 * `FB_PIXEL_ID`
 * `FB_ACCESS_TOKEN`
+* `FB_TEST_EVENT_CODE`
 
 ### Google Analytics 4
 
@@ -106,7 +107,7 @@ All third-party calls run in the background.
 * `GADS_CUSTOMER_ID`
 
 All variables must be configured as **Secrets** in Cloudflare.
-
+FB_TEST_EVENT_CODE must be empty for production.
 ---
 
 ## Cloudflare configuration

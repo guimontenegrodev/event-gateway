@@ -119,12 +119,18 @@ export default {
 
         let res
         try {
+            const requestBody = { data: payload }
+
+            if (env.FB_TEST_EVENT_CODE) {
+                requestBody.test_event_code = env.FB_TEST_EVENT_CODE
+            }
+
             res = await fetch(
                 `https://graph.facebook.com/v18.0/${env.FB_PIXEL_ID}/events?access_token=${env.FB_ACCESS_TOKEN}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data: payload }),
+                    body: JSON.stringify(requestBody),
                     signal: controller.signal
                 }
             )
