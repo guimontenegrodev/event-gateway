@@ -45,7 +45,9 @@ All third-party calls run in the background.
 ```json
 {
   "event": {
-    "name": "Lead",
+    "fb_name": "Lead",
+    "ga4_name": "generate_lead",
+    "gads_name": "generate_lead",
     "id": "evt_123",
     "triggered_at": "2026-01-05T12:00:00Z",
     "source": "website",

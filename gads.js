@@ -23,7 +23,7 @@ export default {
 
     const { event, user, custom } = body || {}
 
-    if (!event?.name || !event?.triggered_at) {
+    if (!event?.gads_name || !event?.triggered_at) {
       return
     }
 

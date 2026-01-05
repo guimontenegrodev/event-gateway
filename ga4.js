@@ -17,7 +17,7 @@ export default {
 
     const { event, user, cookie, custom } = body || {}
 
-    if (!event?.name || !event?.source_url) {
+    if (!event?.ga4_name || !event?.source_url) {
       return
     }
 
