@@ -42,10 +42,6 @@ function isValidActionSource(source) {
 
 export default {
     async fetch(request, env) {
-        if (request.method !== 'POST') {
-            console.warn('Method Not Allowed')
-        }
-
         if (!env.FB_PIXEL_ID || !env.FB_ACCESS_TOKEN) {
             console.warn('Facebook credentials not configured')
         }

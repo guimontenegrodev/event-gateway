@@ -4,6 +4,21 @@ import gads from './gads'
 
 export default {
   fetch(request, env, ctx) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      })
+    }
+    
+    if (request.method !== 'POST') {
+      console.warn('Method Not Allowed')
+    }
+
     if (env.FB_PIXEL_ID && env.FB_ACCESS_TOKEN) {
       ctx.waitUntil(fb.fetch(request.clone(), env))
     } else {

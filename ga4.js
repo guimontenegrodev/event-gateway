@@ -5,10 +5,6 @@ function isValidEventTime(ts) {
 
 export default {
   async fetch(request, env) {
-    if (request.method !== 'POST') {
-      console.warn('Method Not Allowed')
-    }
-
     if (!env.GA4_MEASUREMENT_ID || !env.GA4_API_SECRET) {
       console.warn('Google Analytics credentials not configured')
     }

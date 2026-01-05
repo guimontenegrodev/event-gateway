@@ -14,10 +14,6 @@ function isValidEventTime(dateTime) {
 
 export default {
   async fetch(request, env) {
-    if (request.method !== 'POST') {
-      console.warn('Method Not Allowed')
-    }
-
     if (
       !env.GADS_DEVELOPER_TOKEN ||
       !env.GADS_CLIENT_ID ||
