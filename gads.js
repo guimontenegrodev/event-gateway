@@ -13,40 +13,36 @@ function isValidEventTime(dateTime) {
 }
 
 export default {
-  async fetch(request, env) {
-    if (
-      !env.GADS_DEVELOPER_TOKEN ||
-      !env.GADS_CLIENT_ID ||
-      !env.GADS_CLIENT_SECRET ||
-      !env.GADS_REFRESH_TOKEN ||
-      !env.GADS_CUSTOMER_ID
-    ) {
-      console.warn('Google Ads - Credentials not configured')
+  async fetch(headers, query, body, env) {
+    if (!body) {
+      console.error('Google Ads - Empty body')
+      return
     }
 
-    let body
-    try {
-      body = await request.json()
-    } catch {
-      console.warn('Google Ads - Invalid JSON')
-    }
-
-    const { event, user, custom } = body || {}
+    const { event, user, custom } = body
 
     if (
       !event?.gads_name ||
       !event?.triggered_at ||
       !custom?.conversion_action
     ) {
-      console.warn('Google Ads - Invalid event payload')
+      console.error('Google Ads - Invalid event payload')
+      return
     }
 
     if (!isValidEventTime(event.triggered_at)) {
-      console.warn('Google Ads - Invalid conversion_date_time')
+      console.error('Google Ads - Invalid conversion_date_time')
+      return
     }
 
     if (!user?.email && !user?.phone) {
-      console.warn('Google Ads - Missing user identifiers')
+      console.error('Google Ads - Missing user identifiers')
+      return
+    }
+
+    if (!query.gads_customer_id || !query.gads_client_id) {
+      console.error('Google Ads - Missing query identifiers')
+      return
     }
 
     const identifiers = []
@@ -59,22 +55,29 @@ export default {
       identifiers.push({ hashed_phone_number: await sha256(user.phone) })
     }
 
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: env.GADS_CLIENT_ID,
-        client_secret: env.GADS_CLIENT_SECRET,
-        refresh_token: env.GADS_REFRESH_TOKEN,
-        grant_type: 'refresh_token'
+    let accessToken
+    try {
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: query.gads_client_id,
+          client_secret: env.GADS_CLIENT_SECRET,
+          refresh_token: env.GADS_REFRESH_TOKEN,
+          grant_type: 'refresh_token'
+        })
       })
-    })
 
-    const tokenData = await tokenRes.json()
-    const accessToken = tokenData.access_token
+      const tokenData = await tokenRes.json()
+      accessToken = tokenData.access_token
+    } catch (e) {
+      console.error('Google Ads - Auth request failed', e)
+      return
+    }
 
     if (!accessToken) {
-      console.warn('Google Ads - Google Ads auth failed')
+      console.error('Google Ads - Auth failed')
+      return
     }
 
     const payload = {
@@ -93,10 +96,9 @@ export default {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 5000)
 
-    let res
     try {
-      res = await fetch(
-        `https://googleads.googleapis.com/v14/customers/${env.GADS_CUSTOMER_ID}:uploadClickConversions`,
+      const res = await fetch(
+        `https://googleads.googleapis.com/v14/customers/${query.gads_customer_id}:uploadClickConversions`,
         {
           method: 'POST',
           headers: {
@@ -108,14 +110,15 @@ export default {
           signal: controller.signal
         }
       )
-    } catch {
-      console.warn('Google Ads - Google Ads request failed')
+
+      const text = await res.text()
+      if (!res.ok) {
+        console.error('Google Ads - API error', text)
+      }
+    } catch (e) {
+      console.error('Google Ads - Request failed', e)
     } finally {
       clearTimeout(timeout)
     }
-
-    const resText = await res.text()
-    const text = resText || 'Evento processado com sucesso'
-    console.warn('Google Ads - ' + text)
   }
 }
