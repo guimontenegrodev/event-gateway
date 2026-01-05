@@ -37,16 +37,13 @@ export default {
       return new Response('Invalid event_time', { status: 400 })
     }
 
-    const clientId = cookie?.ga_client_id || null
-    const userId = user?.id || null
-
-    if (!clientId && !userId) {
-      return new Response('Missing client identifier', { status: 400 })
+    if (!user?.ga4_id && !user?.id) {
+      return new Response('User identifier missing', { status: 400 })
     }
 
     const payload = {
-      client_id: clientId || undefined,
-      user_id: userId || undefined,
+      client_id: user?.ga4_id,
+      user_id: user?.id,
       timestamp_micros: eventTime * 1_000_000,
       events: [
         {
